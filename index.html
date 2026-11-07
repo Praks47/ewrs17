@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Transmission Line Waves</title>
+<style>
+:root{--bg:#fafafa;--panel:#fff;--ink:#1d2330;--muted:#7a8296;--line:#e6e8ee;--accent:#2f6fec;--wave:#2f6fec;--grid:#eef0f4;--dot:#d23c3c;--fwd:#18a36b;--ref:#c2408f;--env:#b3bac8;--node:#d23c3c;--anti:#e8a01c}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#11151d;--panel:#181d27;--ink:#e6eaf2;--muted:#8992a6;--line:#262d3b;--accent:#6c9cff;--wave:#6c9cff;--grid:#1f2532;--dot:#ff6b6b;--fwd:#3fd49a;--ref:#ef6fbd;--env:#4c566b;--node:#ff6b6b;--anti:#ffc14d}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.app{display:grid;grid-template-columns:270px 1fr;height:100vh}
+@media (max-width:800px){.app{grid-template-columns:1fr;height:auto}}
+aside{background:var(--panel);border-right:1px solid var(--line);padding:18px 16px;overflow:auto}
+.f{margin-bottom:12px}
+.f .t{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:3px}
+.f .t b{color:var(--ink);font-size:13px}
+.f .r{display:flex;gap:6px;align-items:center}
+.f .r+.r{margin-top:4px}
+input[type=range]{flex:1;min-width:0;accent-color:var(--accent)}
+input[type=number]{width:76px;padding:4px 6px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font:inherit;font-size:13px}
+.u{font-size:12px;color:var(--muted);width:34px}
+.p{font-size:12px;color:var(--muted);width:12px}
+.chk{display:flex;gap:6px;align-items:center;font-size:12px;color:var(--muted);margin-top:5px}
+hr{border:0;border-top:1px solid var(--line);margin:14px 0}
+.res{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;font-size:12.5px}
+.res span{color:var(--muted)}
+.res code{font-family:ui-monospace,Consolas,monospace;font-size:12px;text-align:right}
+.warn{color:var(--dot)}
+main{display:flex;flex-direction:column;padding:16px 20px;min-width:0;height:100vh}
+@media (max-width:800px){main{height:auto}}
+.bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--panel)}
+.seg button,.btn{border:0;background:transparent;color:var(--ink);font:inherit;font-size:13px;padding:7px 14px;cursor:pointer}
+.seg button.on{background:var(--accent);color:#fff}
+.btn{border:1px solid var(--line);border-radius:8px;background:var(--panel)}
+.btn:hover{border-color:var(--accent)}
+.info{display:flex;gap:16px;align-items:center;flex-wrap:wrap;font-size:12px;color:var(--muted);min-height:20px;margin-bottom:8px}
+.info i{display:inline-block;width:16px;height:3px;border-radius:2px;vertical-align:middle;margin-right:5px}
+.info .dotk{width:9px;height:9px;border-radius:50%}
+#tdisp{font-family:ui-monospace,Consolas,monospace;margin-left:auto}
+.plot{flex:1;min-height:0;position:relative;background:var(--panel);border:1px solid var(--line);border-radius:10px}
+@media (max-width:800px){.plot{flex:none;height:60vh}}
+#cv{position:absolute;inset:0;width:100%;height:100%;cursor:crosshair;display:block}
+</style>
+</head>
+<body>
+<div class="app">
+<aside>
+  <div class="f"><div class="t"><b>α</b><span id="aNp"></span></div>
+    <div class="r"><input type="range" id="aR" min="0" max="0.5" step="0.005"><input type="number" id="aN" min="0" max="0.5" step="0.005"><span class="u">dB/m</span></div></div>
+  <div class="f"><div class="t"><b>V⁺</b></div>
+    <div class="r"><input type="range" id="vR" min="0.1" max="10" step="0.1"><input type="number" id="vN" min="0.01" step="any"><span class="u">V</span></div></div>
+  <div class="f"><div class="t"><b>f</b></div>
+    <div class="r"><input type="range" id="fR" min="0" max="4" step="0.01"><input type="number" id="fN" min="0.001" step="any"><span class="u">MHz</span></div></div>
+  <div class="f"><div class="t"><b>λ</b></div>
+    <div class="r"><input type="range" id="lR" min="0.01" max="10" step="0.01"><input type="number" id="lN" min="0.0001" step="any"><span class="u">m</span></div></div>
+  <div class="f"><div class="t"><b>L</b><span id="Lmax"></span></div>
+    <div class="r"><input type="range" id="LR" min="0" max="1" step="0.001"><input type="number" id="LN" min="0.0001" step="any"><span class="u">m</span></div>
+    <label class="chk"><input type="checkbox" id="enf">Keep L ≤ λ/20</label></div>
+  <div class="f"><div class="t"><b>Z₀ = R₀ + jX₀</b></div>
+    <div class="r"><span class="p">R</span><input type="range" id="z0rR" min="1" max="300" step="1"><input type="number" id="z0rN" min="0.01" step="any"><span class="u">Ω</span></div>
+    <div class="r"><span class="p">X</span><input type="range" id="z0iR" min="-100" max="100" step="1"><input type="number" id="z0iN" step="any"><span class="u">Ω</span></div></div>
+  <div class="f"><div class="t"><b>Z<sub>L</sub> = R<sub>L</sub> + jX<sub>L</sub></b></div>
+    <div class="r"><span class="p">R</span><input type="range" id="rR" min="0" max="500" step="1"><input type="number" id="rN" min="0" step="any"><span class="u">Ω</span></div>
+    <div class="r"><span class="p">X</span><input type="range" id="xR" min="-500" max="500" step="1"><input type="number" id="xN" step="any"><span class="u">Ω</span></div></div>
+  <hr>
+  <div class="res" id="res"></div>
+</aside>
+
+<main>
+  <div class="bar">
+    <div class="seg" id="mode">
+      <button data-v="inc" class="on">Travelling</button>
+      <button data-v="ref">Reflected</button>
+      <button data-v="total">Standing</button>
+      <button data-v="res">Resultant</button>
+    </div>
+    <div class="seg" id="qty">
+      <button data-v="V" class="on">V</button>
+      <button data-v="I">I</button>
+    </div>
+    <button class="btn" id="play">❚❚ Pause</button>
+    <button class="btn" id="reset" style="display:none">↺ Reset t = 0</button>
+  </div>
+  <div class="info" id="info"></div>
+  <div class="plot"><canvas id="cv"></canvas></div>
+</main>
+</div>
+
+<script>
+/* ---------- complex math ---------- */
+const C=(re,im=0)=>({re,im});
+const add=(a,b)=>C(a.re+b.re,a.im+b.im), sub=(a,b)=>C(a.re-b.re,a.im-b.im);
+const mul=(a,b)=>C(a.re*b.re-a.im*b.im,a.re*b.im+a.im*b.re);
+const div=(a,b)=>{const d=b.re*b.re+b.im*b.im;return C((a.re*b.re+a.im*b.im)/d,(a.im*b.re-a.re*b.im)/d)};
+const cexp=z=>{const m=Math.exp(z.re);return C(m*Math.cos(z.im),m*Math.sin(z.im))};
+const cabs=z=>Math.hypot(z.re,z.im), carg=z=>Math.atan2(z.im,z.re);
+const $=id=>document.getElementById(id), DBNP=20*Math.log10(Math.E);
+const fx=(x,d=3)=>isFinite(x)?(+x.toPrecision(d)).toString():'∞';
+const cs=z=>fx(z.re)+(z.im<0?' − j':' + j')+fx(Math.abs(z.im));
+function si(x,u,d=3){if(!isFinite(x))return'∞ '+u;if(x===0)return'0 '+u;
+  for(const[s,n]of[[1e9,'G'],[1e6,'M'],[1e3,'k'],[1,''],[1e-3,'m'],[1e-6,'µ'],[1e-9,'n'],[1e-12,'p']])
+    if(Math.abs(x)>=s*0.9999)return(+(x/s).toPrecision(d))+' '+n+u;return x.toExponential(2)+' '+u;}
+
+/* ---------- state ---------- */
+const S={aDb:0.05,Vp:1,fMHz:100,lam:2,L:6,Z0r:50,Z0i:0,R:0,X:0,enf:false,
+         mode:'inc',q:'V',play:true,t:0,probe:null};
+const SPEED=0.8;          // wave periods shown per real second
+let D; const N=600;
+
+/* ---------- physics (l = distance from load) ---------- */
+function extrema(e){
+  let lo=Infinity,hi=-Infinity;for(const v of e){lo=Math.min(lo,v);hi=Math.max(hi,v);}
+  const rng=hi-lo, out={min:[],max:[]};
+  if(!(hi>0)||rng/hi<1e-3) return out;            // flat envelope: no nodes/antinodes
+  for(let k=1;k<N-1;k++){
+    if(e[k]<e[k-1]&&e[k]<=e[k+1]) out.min.push(k);
+    if(e[k]>e[k-1]&&e[k]>=e[k+1]) out.max.push(k);
+  }
+  for(const k of [0,N-1]){                       // ends count only if they are true extremes
+    if(e[k]-lo<0.01*rng) out.min.push(k);
+    if(hi-e[k]<0.01*rng) out.max.push(k);
+  }
+  return out;
+}
+function derive(){
+  const a=S.aDb/DBNP, b=2*Math.PI/S.lam, f=S.fMHz*1e6, w=2*Math.PI*f, v=f*S.lam, ti=S.L/v;
+  const Z0=C(S.Z0r,S.Z0i), ZL=C(S.R,S.X);
+  const den=add(ZL,Z0), GL=cabs(den)<1e-12?C(0):div(sub(ZL,Z0),den), g=cabs(GL);
+  const Vm=mul(GL,C(S.Vp));                      // V⁻ = Γ_L V⁺
+  const Vi=[],Vr=[],Ii=[],Ir=[],eV=[],eI=[],ls=[]; let vm=0,im=0;
+  for(let k=0;k<N;k++){
+    const l=S.L*(1-k/(N-1)); ls.push(l);
+    const vi=mul(C(S.Vp),cexp(C(a*l,b*l)));      // V⁺ e^{γl}
+    const vr=mul(Vm,cexp(C(-a*l,-b*l)));         // V⁻ e^{−γl}
+    const ii=div(vi,Z0), ir=div(C(-vr.re,-vr.im),Z0);   // I(l) = V(l)/Z(l)
+    Vi.push(vi);Vr.push(vr);Ii.push(ii);Ir.push(ir);
+    const ev=cabs(add(vi,vr)), ei=cabs(add(ii,ir)); eV.push(ev);eI.push(ei);
+    vm=Math.max(vm,cabs(vi)+cabs(vr)); im=Math.max(im,cabs(ii)+cabs(ir));
+  }
+  D={a,b,f,w,v,ti,T:1/f,GL,g,Vi,Vr,Ii,Ir,eV,eI,ls,
+     xV:extrema(eV),xI:extrema(eI),vm:vm*1.12||1,im:im*1.12||1,
+     t0:(-Math.PI/2-b*S.L)/w};                   // source switched on at a zero crossing
+  const ok=S.L<=S.lam/20*(1+1e-9);
+  $('aNp').textContent=fx(a,4)+' Np/m';
+  $('Lmax').innerHTML='<span class="'+(ok?'':'warn')+'">λ/20 = '+si(S.lam/20,'m')+'</span>';
+  const row=(k,x)=>'<span>'+k+'</span><code>'+x+'</code>';
+  $('res').innerHTML=
+    row('β = 2π/λ',fx(b,4)+' rad/m')+row('ω₀ = 2πf',si(w,'rad/s'))+row('v = fλ',si(v,'m/s'))+
+    row('tᵢ = L/v',si(ti,'s'))+row('Γ_L',cs(GL))+
+    row('|Γ_L| ∠',fx(g)+' ∠ '+fx(carg(GL)*180/Math.PI)+'°')+
+    row('|V⁻|/|V⁺|',fx(g))+row('VSWR',fx(g>=1-1e-12?Infinity:(1+g)/(1-g)));
+}
+const inst=(X,t)=>X.re*Math.cos(D.w*t)-X.im*Math.sin(D.w*t);   // Re{X e^{jω₀t}}
+
+/* forward & reflected components at sample k */
+function comp(k,t){
+  const A=S.q==='V'?D.Vi:D.Ii, B=S.q==='V'?D.Vr:D.Ir;
+  if(S.mode!=='res') return [inst(A[k],t),inst(B[k],t)];
+  const l=D.ls[k], z=S.L-l, ts=t+D.t0;
+  const fOn=t>=z/D.v, rOn=t>=(S.L+l)/D.v;      // forward reaches z at z/v, reflection at (L+l)/v
+  return [fOn?inst(A[k],ts):0, rOn?inst(B[k],ts):0];
+}
+function value(k,t){const[f,r]=comp(k,t);return S.mode==='inc'?f:S.mode==='ref'?r:f+r;}
+
+/* ---------- drawing ---------- */
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const P={l:58,r:20,t:26,b:40}, cv=$('cv');
+function draw(){
+  const r=devicePixelRatio||1,W=cv.clientWidth,H=cv.clientHeight;
+  if(cv.width!==Math.round(W*r)||cv.height!==Math.round(H*r)){cv.width=Math.round(W*r);cv.height=Math.round(H*r);}
+  const x=cv.getContext('2d');x.setTransform(r,0,0,r,0,0);x.clearRect(0,0,W,H);
+  const isV=S.q==='V', M=isV?D.vm:D.im;
+  const X=k=>P.l+(W-P.l-P.r)*k/(N-1), Y=y=>P.t+(H-P.t-P.b)*(0.5-0.5*y/M);
+  const path=(f,col,wd,dash=[])=>{x.beginPath();x.setLineDash(dash);x.strokeStyle=col;x.lineWidth=wd;
+    for(let k=0;k<N;k++){const p=[X(k),Y(f(k))];k?x.lineTo(...p):x.moveTo(...p);}x.stroke();x.setLineDash([]);};
+  const vline=(px,col,dash=[4,4])=>{x.strokeStyle=col;x.lineWidth=1.2;x.setLineDash(dash);x.beginPath();x.moveTo(px,P.t);x.lineTo(px,H-P.b);x.stroke();x.setLineDash([]);};
+
+  // grid + axes
+  x.font='11px system-ui';x.fillStyle=css('--muted');x.strokeStyle=css('--grid');x.lineWidth=1;
+  for(let j=-2;j<=2;j++){const y=Y(M*j/2.24);x.beginPath();x.moveTo(P.l,y);x.lineTo(W-P.r,y);x.stroke();
+    x.textAlign='right';x.fillText(isV?fx(M*j/2.24)+' V':si(M*j/2.24,'A'),P.l-6,y+4);}
+  for(let j=0;j<=5;j++){const xx=P.l+(W-P.l-P.r)*j/5;x.beginPath();x.moveTo(xx,P.t);x.lineTo(xx,H-P.b);x.stroke();
+    x.textAlign='center';x.fillText(si(S.L*j/5,'m'),xx,H-P.b+16);}
+  x.textAlign='left';x.fillText('Source',P.l,H-6);x.textAlign='right';x.fillText('Load',W-P.r,H-6);
+  x.textAlign='center';x.fillText('x',(W+P.l)/2,H-6);
+
+  const t=S.t;
+  if(S.mode==='total'){
+    // envelope ±|V(l)| and nodes / antinodes
+    const E=isV?D.eV:D.eI, ex=isV?D.xV:D.xI;
+    path(k=>E[k],css('--env'),1.3,[5,4]);path(k=>-E[k],css('--env'),1.3,[5,4]);
+    const lbl=ex.min.length+ex.max.length<=16;
+    x.font='bold 11px system-ui';x.textAlign='center';
+    for(const k of ex.max){
+      const px=X(k);vline(px,css('--anti'),[2,4]);
+      x.fillStyle=css('--anti');
+      for(const s of[1,-1]){x.beginPath();x.arc(px,Y(s*E[k]),4,0,7);x.fill();}
+      x.fillText('A',px,P.t-12);
+      if(lbl){x.font='10px system-ui';x.fillText(si(D.ls[k],'m'),px,P.t-1);x.font='bold 11px system-ui';}
+    }
+    for(const k of ex.min){
+      const px=X(k);x.strokeStyle=css('--node');x.lineWidth=2;
+      x.beginPath();x.arc(px,Y(0),5,0,7);x.stroke();
+      x.fillStyle=css('--node');x.fillText('N',px,Y(0)+18);
+      if(lbl){x.font='10px system-ui';x.fillText(si(D.ls[k],'m'),px,Y(0)+30);x.font='bold 11px system-ui';}
+    }
+    path(k=>value(k,t),css('--wave'),2.6);
+  } else if(S.mode==='res'){
+    // forward, reflected (thin) + resultant (thick)
+    path(k=>comp(k,t)[0],css('--fwd'),1.6);
+    path(k=>comp(k,t)[1],css('--ref'),1.6);
+    path(k=>value(k,t),css('--wave'),2.8);
+    const zf=D.v*t, zr=2*S.L-D.v*t;            // wavefront positions (from source)
+    if(zf<S.L) vline(P.l+(W-P.l-P.r)*zf/S.L,css('--fwd'));
+    if(D.g>0&&zf>=S.L&&zr>0) vline(P.l+(W-P.l-P.r)*zr/S.L,css('--ref'));
+  } else {
+    path(k=>value(k,t),S.mode==='ref'?css('--ref'):css('--wave'),2.6);
+  }
+
+  // probe point
+  if(S.probe!==null){
+    const k=Math.round(S.probe*(N-1)),px=X(k);
+    vline(px,css('--dot'));
+    x.fillStyle=css('--dot');x.beginPath();x.arc(px,Y(value(k,t)),7,0,7);x.fill();
+  }
+}
+
+/* ---------- info line ---------- */
+const key=(c,s,dot)=>'<span><i class="'+(dot?'dotk':'')+'" style="background:var('+c+')"></i>'+s+'</span>';
+function info(){
+  const q=S.q;
+  if(S.mode==='total') return key('--wave',q+' (total)')+key('--env','±|'+q+'| envelope')+
+    key('--node','N = node (|'+q+'| min)',1)+key('--anti','A = antinode (|'+q+'| max)',1)+
+    '<span>labels = distance from load</span>';
+  if(S.mode==='res'){
+    const ti=D.ti, t=S.t;
+    const st=t<ti?'forward wave travelling to load':D.g===0?'matched load: no reflection':t<2*ti?'reflected wave travelling back':'steady state (standing pattern)';
+    return key('--fwd','Forward')+key('--ref','Reflected')+key('--wave','Resultant')+
+      '<span id="tdisp">t = '+si(t,'s',4)+' · tᵢ = '+si(ti,'s',3)+' · '+st+'</span>';
+  }
+  return '';
+}
+
+/* ---------- animation ---------- */
+let last=performance.now();
+function frame(now){
+  const dt=Math.min(.1,(now-last)/1000);last=now;
+  if(S.play)S.t+=dt*SPEED*D.T;
+  draw();$('info').innerHTML=info();
+  requestAnimationFrame(frame);
+}
+
+/* ---------- inputs ---------- */
+function sync(){
+  const lim=S.lam/20;if(S.enf&&S.L>lim)S.L=lim;
+  const Lmax=S.enf?lim:Math.max(5*S.lam,S.L);
+  const set=(r,n,v,rv=v)=>{$(r).value=rv;$(n).value=+(+v).toPrecision(4);};
+  set('aR','aN',S.aDb);set('vR','vN',S.Vp);set('fR','fN',S.fMHz,Math.log10(S.fMHz));
+  $('lR').max=Math.max(10,S.lam);set('lR','lN',S.lam);
+  $('LR').max=Lmax;$('LR').step=Lmax/1000;set('LR','LN',S.L);
+  set('z0rR','z0rN',S.Z0r);set('z0iR','z0iN',S.Z0i);
+  set('rR','rN',S.R);set('xR','xN',S.X);$('enf').checked=S.enf;
+  derive();
+}
+const bind=(r,n,k,fromR=v=>v,ok=v=>true)=>{
+  $(r).oninput=()=>{S[k]=fromR(+$(r).value);sync();};
+  $(n).onchange=()=>{const v=+$(n).value;if(isFinite(v)&&ok(v))S[k]=v;sync();};
+};
+bind('aR','aN','aDb',v=>v,v=>v>=0&&v<=0.5);
+bind('vR','vN','Vp',v=>v,v=>v>0);
+bind('fR','fN','fMHz',v=>Math.pow(10,v),v=>v>0);
+bind('lR','lN','lam',v=>v,v=>v>0);
+bind('LR','LN','L',v=>Math.max(v,1e-6),v=>v>0);
+bind('z0rR','z0rN','Z0r',v=>v,v=>v>0);
+bind('z0iR','z0iN','Z0i');
+bind('rR','rN','R',v=>v,v=>v>=0);
+bind('xR','xN','X');
+$('enf').onchange=()=>{S.enf=$('enf').checked;sync();};
+const seg=(id,k,cb)=>document.querySelectorAll('#'+id+' button').forEach(b=>b.onclick=()=>{
+  S[k]=b.dataset.v;document.querySelectorAll('#'+id+' button').forEach(o=>o.classList.toggle('on',o===b));cb&&cb();});
+seg('mode','mode',()=>{const res=S.mode==='res';$('reset').style.display=res?'':'none';if(res)S.t=0;});
+seg('qty','q');
+$('play').onclick=()=>{S.play=!S.play;$('play').textContent=S.play?'❚❚ Pause':'▶ Play';};
+$('reset').onclick=()=>{S.t=0;};
+cv.onclick=e=>{const r=cv.getBoundingClientRect();S.probe=Math.min(1,Math.max(0,(e.clientX-r.left-P.l)/(r.width-P.l-P.r)));};
+
+sync();requestAnimationFrame(frame);
+</script>
+</body>
+</html>
