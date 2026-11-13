@@ -105,7 +105,7 @@ function si(x,u,d=3){if(!isFinite(x))return'∞ '+u;if(x===0)return'0 '+u;
 
 /* ---------- state ---------- */
 const S={aDb:0.05,Vp:1,fMHz:100,lam:2,L:6,Z0r:50,Z0i:0,R:0,X:0,enf:false,
-         mode:'inc',q:'V',play:true,t:0,probe:null};
+         mode:'res',q:'V',play:true,t:0,probe:null};
 const SPEED=0.8;          // wave periods shown per real second
 let D; const N=600;
 
